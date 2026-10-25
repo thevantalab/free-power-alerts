@@ -1,0 +1,62 @@
+name: Check for free electricity
+
+on:
+  schedule:
+    # Every 15 minutes. Off-the-hour minutes avoid GitHub's busiest moments.
+    - cron: "7,22,37,52 * * * *"
+  workflow_dispatch:
+    inputs:
+      test_notification:
+        description: "Just send a test notification"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write # save the state and calendar feed back to the repository
+  actions: write # keep this schedule switched on (last step)
+
+concurrency:
+  group: free-electricity-check
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Send a test notification
+        if: ${{ inputs.test_notification }}
+        run: python3 checker.py --test
+        env:
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+
+      - name: Check for free electricity
+        if: ${{ !inputs.test_notification }}
+        run: python3 checker.py
+        env:
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+          EDF_REGION: ${{ vars.EDF_REGION }}
+
+      - name: Save state and calendar
+        if: ${{ !inputs.test_notification }}
+        run: |
+          git add data/state.json docs/free-electricity.ics
+          if git diff --cached --quiet; then
+            echo "Nothing changed."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Update free electricity calendar"
+          git pull --rebase
+          git push
+
+      # GitHub switches off scheduled workflows in repositories with no activity for
+      # 60 days. Re-enabling this one on every run resets that clock.
+      - name: Keep the schedule switched on
+        if: ${{ github.event_name == 'schedule' }}
+        run: gh api -X PUT "repos/${{ github.repository }}/actions/workflows/check.yml/enable" || true
+        env:
+          GH_TOKEN: ${{ github.token }}
