@@ -1,0 +1,27 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//free-power-alerts//EN
+CALSCALE:GREGORIAN
+METHOD:PUBLISH
+X-WR-CALNAME:Free electricity
+X-WR-CALDESC:EDF free electricity windows: confirmed from EDF's prices\, te
+ ntative from the Power Perks Predictor forecast.
+X-WR-TIMEZONE:Europe/London
+REFRESH-INTERVAL;VALUE=DURATION:PT15M
+X-PUBLISHED-TTL:PT15M
+BEGIN:VEVENT
+UID:87c7123bee7c4dba@free-power-alerts
+DTSTAMP:20261025T174715Z
+LAST-MODIFIED:20261025T174715Z
+SEQUENCE:0
+DTSTART:20261024T220000Z
+DTEND:20261025T060000Z
+SUMMARY:⚡ Free electricity
+DESCRIPTION:EDF's FreePhase prices are 0p for this window. Power Perks have
+  matched these windows\; EDF's text is the official confirmation. https://
+ powerperkspredictor.app
+STATUS:CONFIRMED
+TRANSP:TRANSPARENT
+URL:https://powerperkspredictor.app
+END:VEVENT
+END:VCALENDAR

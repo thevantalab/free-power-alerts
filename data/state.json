@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "events": [
+    {
+      "uid": "87c7123bee7c4dba",
+      "status": "confirmed",
+      "source": "edf",
+      "start": "2026-10-24T22:00:00Z",
+      "end": "2026-10-25T06:00:00Z",
+      "peak": 1.0,
+      "created": "2026-10-25T17:47:15Z",
+      "updated": "2026-10-25T17:47:15Z",
+      "sequence": 0,
+      "notified": []
+    }
+  ],
+  "health": {}
+}
