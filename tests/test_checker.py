@@ -133,11 +133,11 @@ class LastWeekendReplay(unittest.TestCase):
         self.assertEqual((event.uid, event.status), (uid, "confirmed"))
         self.assertIn("STATUS:CONFIRMED", sim.ics())
 
-        # Hourly runs. At 19:50 the 10pm reminder is still beyond the next run. At 20:50
-        # the next run (21:50) could start late, so it goes to ntfy now, held until 10pm.
-        expected = {19: [], 20: ["reminder"], 21: [], 22: []}
+        # Hourly runs on the hour. At 20:00 the 10pm reminder is beyond the next run.
+        # At 21:00 the next run could start after 10pm, so it goes to ntfy now, held until 10pm.
+        expected = {20: [], 21: ["reminder"], 22: [], 23: []}
         for hour, kinds in expected.items():
-            now = uk(2026, 10, 24, hour, 50)
+            now = uk(2026, 10, 24, hour, 0)
             rates = prices(now, uk(2026, 10, 25, 23), free=[(start, end)])
             msgs = sim.run(now, rates, outlook(OCT25), firm(OCT25, True, [window]))
             self.assertEqual([m.kind for m in msgs], kinds, hour)

@@ -16,7 +16,7 @@ Heads-ups and "less likely" alerts that come up between 10pm and 7am wait until 
 
 ## How it works
 
-`checker.py` runs once an hour on GitHub Actions, at 50 minutes past, shortly after the predictor refreshes its files. So an alert can arrive up to about an hour after new information appears, plus any delay in GitHub starting the run (usually a few minutes). Each run it reads:
+`checker.py` runs once an hour on GitHub Actions, on the hour. So an alert can arrive up to about an hour after new information appears, plus any delay in GitHub starting the run. The top of the hour is GitHub's busiest time, so that delay can sometimes be 10–20 minutes, and very occasionally a run is skipped. Each run it reads:
 
 - **EDF's FreePhase Dynamic prices** from EDF's public API (no login needed). Half-hours priced at 0p are free. These have lined up with Power Perks windows, and EDF publish them around midday the day before.
 - **The Power Perks Predictor's** `tomorrow.json` (the day-ahead auction call, about 11:00) and `outlook.json` (the 7-day forecast, updated a couple of times a day).

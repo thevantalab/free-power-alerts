@@ -39,8 +39,9 @@ EDF_API = "https://api.edfgb-kraken.energy/v1"
 DEFAULT_PRODUCT = "EDF_FREEPHASE_DYNAMIC_12M_V2_HH"
 USER_AGENT = "free-power-alerts/1.0 (personal alert script; polls hourly)"
 
-# Scheduled runs can start late, so plan as if the next run might be this much later.
-RUN_DELAY_ALLOWANCE = timedelta(minutes=15)
+# Scheduled runs can start late (on-the-hour runs especially), so plan as if the
+# next run might be this much later.
+RUN_DELAY_ALLOWANCE = timedelta(minutes=30)
 
 SOURCE_LABELS = {
     "edf": "EDF's price data",

@@ -2,10 +2,10 @@ name: Check for free electricity
 
 on:
   schedule:
-    # Once an hour, at 50 minutes past: shortly after the Power Perks Predictor
-    # refreshes its files (around :30 and :40), and off GitHub's busy top of the hour.
+    # Once an hour, on the hour. The top of the hour is GitHub's busiest time, so a
+    # run can start late or, rarely, be skipped.
     # If you change this, set CHECK_MINUTES below to match.
-    - cron: "50 * * * *"
+    - cron: "0 * * * *"
   workflow_dispatch:
     inputs:
       test_notification:
