@@ -8,15 +8,15 @@ Phone notifications and a calendar feed for EDF's free electricity (Power Perks)
 |---|---|---|
 | Usually 2–5 days ahead, when the [Power Perks Predictor](https://powerperkspredictor.app) forecast reaches 90% within the next 3 days | "Free electricity possible Saturday night" | Tentative entry |
 | If the forecast drops below 60%, or the day-ahead auction or EDF's prices rule it out | "Free electricity less likely…" / "No free electricity … after all" | Entry removed |
-| About 11:00 the day before, if the auction clears at £0 and there was no heads-up yet | "Free electricity very likely tomorrow" | Tentative entry |
-| Around midday the day before, when EDF's own prices show 0p, usually before EDF's text | "Free electricity confirmed tonight" with exact times | Confirmed entry |
-| An hour before it starts | "Free electricity starts in about an hour" | – |
+| By about midday the day before, if the auction clears at £0 and there was no heads-up yet | "Free electricity very likely tomorrow" | Tentative entry |
+| Within about an hour of EDF's own prices showing 0p (they publish around midday the day before), often before EDF's text | "Free electricity confirmed tonight" with exact times | Confirmed entry |
+| An hour before it starts, on time even between checks (ntfy holds it until then) | "Free electricity starts in about an hour" | – |
 
 Heads-ups and "less likely" alerts that come up between 10pm and 7am wait until 7am, unless the window starts before then. Confirmations and reminders are never held back.
 
 ## How it works
 
-`checker.py` runs every 15 minutes on GitHub Actions. Each run it reads:
+`checker.py` runs once an hour on GitHub Actions, at 50 minutes past, shortly after the predictor refreshes its files. So an alert can arrive up to about an hour after new information appears, plus any delay in GitHub starting the run (usually a few minutes). Each run it reads:
 
 - **EDF's FreePhase Dynamic prices** from EDF's public API (no login needed). Half-hours priced at 0p are free. These have lined up with Power Perks windows, and EDF publish them around midday the day before.
 - **The Power Perks Predictor's** `tomorrow.json` (the day-ahead auction call, about 11:00) and `outlook.json` (the 7-day forecast, updated a couple of times a day).
@@ -33,7 +33,7 @@ EDF's text is still the official confirmation. This is an early-warning system b
 4. **Calendar hosting.** **Settings → Pages**: Source **Deploy from a branch**, branch **main**, folder **/docs**.
 5. **Test.** **Actions → Check for free electricity → Run workflow**, tick **Just send a test notification**. Your phone should buzz. Then run it again without the tick, to create the calendar feed.
 6. **Subscribe to the calendar.** Open `https://<your-username>.github.io/<repo-name>/` on your phone and tap **Add to Calendar**.
-   - **iPhone:** subscribed calendars refresh on their own schedule (Settings → Calendar → Accounts → Fetch New Data; "Every 15 minutes" is quickest). iOS removes alerts from subscribed calendars by default, so rely on the ntfy reminder.
+   - **iPhone:** subscribed calendars refresh on their own schedule (Settings → Calendar → Accounts → Fetch New Data; "Hourly" is enough, as the feed changes at most once an hour). iOS removes alerts from subscribed calendars by default, so rely on the ntfy reminder.
    - **Google Calendar:** re-reads subscribed calendars only every few hours, sometimes up to a day. A cancelled window can linger that long, but the ntfy alert tells you straight away.
 
 ## Optional settings
@@ -42,6 +42,7 @@ Set these as repository **variables** (Settings → Secrets and variables → Ac
 
 | Variable | Default | Meaning |
 |---|---|---|
+| Schedule | hourly | Not a variable: edit the `cron` line in `.github/workflows/check.yml`, and set `CHECK_MINUTES` next to it to match, so reminders stay on time |
 | `EDF_REGION` | `A` | Your electricity region letter (A–P). Free windows have been the same in every region checked, so this rarely matters. |
 | `HEADS_UP_PROBABILITY` | `0.9` | How confident the forecast must be before a heads-up |
 | `HEADS_UP_DAYS` | `3` | How many days ahead to warn about |
@@ -66,4 +67,4 @@ python3 -m unittest discover tests                # run the tests
 
 ## Credits
 
-The forecast comes from [Power Perks Predictor](https://powerperkspredictor.app) by Steve Kirtley, an unofficial one-person project. It polls their files at most every 15 minutes. If you find it useful, consider [supporting their work](https://ko-fi.com/stevekirtley). Not affiliated with EDF Energy.
+The forecast comes from [Power Perks Predictor](https://powerperkspredictor.app) by Steve Kirtley, an unofficial one-person project. This checker reads their files once an hour. If you find it useful, consider [supporting their work](https://ko-fi.com/stevekirtley). Not affiliated with EDF Energy.

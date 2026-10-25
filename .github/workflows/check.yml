@@ -2,8 +2,10 @@ name: Check for free electricity
 
 on:
   schedule:
-    # Every 15 minutes. Off-the-hour minutes avoid GitHub's busiest moments.
-    - cron: "7,22,37,52 * * * *"
+    # Once an hour, at 50 minutes past: shortly after the Power Perks Predictor
+    # refreshes its files (around :30 and :40), and off GitHub's busy top of the hour.
+    # If you change this, set CHECK_MINUTES below to match.
+    - cron: "50 * * * *"
   workflow_dispatch:
     inputs:
       test_notification:
@@ -38,6 +40,7 @@ jobs:
         env:
           NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
           EDF_REGION: ${{ vars.EDF_REGION }}
+          CHECK_MINUTES: 60 # how often the schedule above runs
 
       - name: Save state and calendar
         if: ${{ !inputs.test_notification }}

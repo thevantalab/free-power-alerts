@@ -133,15 +133,18 @@ class LastWeekendReplay(unittest.TestCase):
         self.assertEqual((event.uid, event.status), (uid, "confirmed"))
         self.assertIn("STATUS:CONFIRMED", sim.ics())
 
-        # Sat 22:10: reminder, once.
-        now = uk(2026, 10, 24, 22, 10)
-        rates = prices(now, uk(2026, 10, 25, 23), free=[(start, end)])
-        msgs = sim.run(now, rates, outlook(OCT25), firm(OCT25, True, [window]))
-        self.assertEqual([m.kind for m in msgs], ["reminder"])
-        self.assertEqual(msgs[0].title, "Free electricity starts in about an hour")
-        self.assertEqual(msgs[0].body, "Free from 11pm until 6am Sun.")
-        now = uk(2026, 10, 24, 22, 25)
-        self.assertEqual(sim.run(now, prices(now, uk(2026, 10, 25, 23), free=[(start, end)]), outlook(OCT25), firm(OCT25, True, [window])), [])
+        # Hourly runs. At 19:50 the 10pm reminder is still beyond the next run. At 20:50
+        # the next run (21:50) could start late, so it goes to ntfy now, held until 10pm.
+        expected = {19: [], 20: ["reminder"], 21: [], 22: []}
+        for hour, kinds in expected.items():
+            now = uk(2026, 10, 24, hour, 50)
+            rates = prices(now, uk(2026, 10, 25, 23), free=[(start, end)])
+            msgs = sim.run(now, rates, outlook(OCT25), firm(OCT25, True, [window]))
+            self.assertEqual([m.kind for m in msgs], kinds, hour)
+            if kinds:
+                self.assertEqual(msgs[0].title, "Free electricity starts in about an hour")
+                self.assertEqual(msgs[0].body, "Free from 11pm until 6am Sun.")
+                self.assertEqual(msgs[0].delay_until, uk(2026, 10, 24, 22))
 
         # Sunday evening: it's history now, still in the calendar, and nothing keeps changing.
         before = json.dumps(sim.state)
@@ -300,6 +303,14 @@ class ConfirmedWindows(unittest.TestCase):
         now = uk(2026, 10, 24, 22, 45)
         msgs = sim.run(now, prices(now, uk(2026, 10, 25, 23), free=[(self.start, self.end)]), outlook(OCT25), firm(OCT25))
         self.assertEqual(msgs, [])
+
+    def test_confirmed_ninety_minutes_before_still_gets_an_on_time_reminder(self):
+        sim = Sim()
+        now = uk(2026, 10, 24, 21, 30)
+        msgs = sim.run(now, prices(now, uk(2026, 10, 25, 23), free=[(self.start, self.end)]), outlook(OCT25), firm(OCT25))
+        self.assertEqual([m.kind for m in msgs], ["confirmed", "reminder"])
+        self.assertIsNone(msgs[0].delay_until)
+        self.assertEqual(msgs[1].delay_until, uk(2026, 10, 24, 22))
 
     def test_already_running(self):
         sim = Sim()

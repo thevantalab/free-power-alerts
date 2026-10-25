@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Free electricity alerts for EDF Power Perks.
 
-Every run (GitHub Actions runs it every 15 minutes) it:
+Every run (GitHub Actions runs it once an hour) it:
   1. reads EDF's public FreePhase Dynamic prices, where 0p half-hours mean free
      electricity, plus the Power Perks Predictor's day-ahead call and 7-day forecast;
   2. works out which free windows are confirmed and which are only looking likely;
@@ -37,7 +37,10 @@ ROOT = Path(__file__).resolve().parent
 SITE = "https://powerperkspredictor.app"
 EDF_API = "https://api.edfgb-kraken.energy/v1"
 DEFAULT_PRODUCT = "EDF_FREEPHASE_DYNAMIC_12M_V2_HH"
-USER_AGENT = "free-power-alerts/1.0 (personal alert script; polls every 15 minutes)"
+USER_AGENT = "free-power-alerts/1.0 (personal alert script; polls hourly)"
+
+# Scheduled runs can start late, so plan as if the next run might be this much later.
+RUN_DELAY_ALLOWANCE = timedelta(minutes=15)
 
 SOURCE_LABELS = {
     "edf": "EDF's price data",
@@ -69,6 +72,7 @@ class Config:
     keep_probability: float = 0.6  # a possible window stays while its peak is at least this
     hour_probability: float = 0.5  # hours at least this likely make up a forecast window
     reminder_minutes: int = 60  # 0 turns reminders off
+    check_minutes: int = 60  # how often the schedule runs this script
     quiet_start: int = 22  # overnight, non-urgent alerts wait until quiet_end
     quiet_end: int = 7
     history_days: int = 30  # how long past free windows stay in the calendar
@@ -87,6 +91,7 @@ class Config:
             heads_up_probability=float(_env("HEADS_UP_PROBABILITY", str(cls.heads_up_probability))),
             heads_up_days=int(_env("HEADS_UP_DAYS", str(cls.heads_up_days))),
             reminder_minutes=int(_env("REMINDER_MINUTES", str(cls.reminder_minutes))),
+            check_minutes=int(_env("CHECK_MINUTES", str(cls.check_minutes))),
             quiet_start=int(_env("QUIET_START", str(cls.quiet_start))),
             quiet_end=int(_env("QUIET_END", str(cls.quiet_end))),
         )
@@ -509,16 +514,24 @@ def plan(
             messages.append(faded_message(e, now, latest, auction_said_no))
         # Otherwise a source is down: keep the event until the data comes back.
 
-    # 4. Reminders shortly before a confirmed window starts.
+    # 4. Reminders shortly before a confirmed window starts. If the reminder falls due
+    #    before the next run, hand it to ntfy now to deliver at exactly the right time.
     if cfg.reminder_minutes > 0:
         just_confirmed = {m.uid for m in messages if m.kind == "confirmed"}
+        next_run = now + timedelta(minutes=cfg.check_minutes) + RUN_DELAY_ALLOWANCE
         for e in events:
-            if e.status != "confirmed" or "reminder" in e.notified:
+            if e.status != "confirmed" or "reminder" in e.notified or e.start <= now:
                 continue
-            if timedelta(0) < e.start - now <= timedelta(minutes=cfg.reminder_minutes):
-                e.notified.append("reminder")
-                if e.uid not in just_confirmed:
-                    messages.append(reminder_message(e, now))
+            due = e.start - timedelta(minutes=cfg.reminder_minutes)
+            if due > next_run:
+                continue  # a later run will see to it
+            e.notified.append("reminder")
+            if due <= now and e.uid in just_confirmed:
+                continue  # confirmed this close to the start: that alert is the reminder
+            reminder = reminder_message(e, max(due, now))
+            if due > now + timedelta(minutes=1):
+                reminder.delay_until = due
+            messages.append(reminder)
 
     # 5. Data sources that keep failing.
     health = {name: dict(info) for name, info in (state.get("health") or {}).items()}
@@ -775,8 +788,8 @@ def calendar(events: list[dict]) -> str:
         "X-WR-CALDESC:EDF free electricity windows: confirmed from EDF's prices\\, "
         "tentative from the Power Perks Predictor forecast.",
         "X-WR-TIMEZONE:Europe/London",
-        "REFRESH-INTERVAL;VALUE=DURATION:PT15M",
-        "X-PUBLISHED-TTL:PT15M",
+        "REFRESH-INTERVAL;VALUE=DURATION:PT1H",
+        "X-PUBLISHED-TTL:PT1H",
     ]
     for d in events:
         e = Event.from_dict(d)
