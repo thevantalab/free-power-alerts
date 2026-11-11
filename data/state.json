@@ -14,5 +14,6 @@
       "notified": []
     }
   ],
-  "health": {}
+  "health": {},
+  "missing_prices_warned": "2026-11-11"
 }
