@@ -14,6 +14,10 @@
       "notified": []
     }
   ],
-  "health": {},
+  "health": {
+    "edf": {
+      "failing_since": "2026-11-13T01:36:21Z"
+    }
+  },
   "missing_prices_warned": "2026-11-12"
 }
